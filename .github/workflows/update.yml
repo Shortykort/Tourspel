@@ -9,6 +9,11 @@ on:
 permissions:
   contents: write
 
+# nooit twee runs tegelijk; een nieuwe upload wacht netjes op de vorige
+concurrency:
+  group: stand-bijwerken
+  cancel-in-progress: false
+
 jobs:
   update:
     runs-on: ubuntu-latest
@@ -24,14 +29,25 @@ jobs:
 
       - name: Alle etappe-sheets verwerken
         run: |
-          for f in sheets/*.xlsx; do
+          shopt -s nullglob
+          bestanden=(sheets/*.xlsx)
+          if [ ${#bestanden[@]} -eq 0 ]; then
+            echo "Geen sheets gevonden; niets te doen."
+            exit 0
+          fi
+          for f in "${bestanden[@]}"; do
             python update_stand.py "$f"
           done
 
       - name: Bijgewerkte stand committen
         run: |
           git config user.name "tourspel-bot"
-          git config user.email "actions@users.noreply.github.com"
+          git config user.email "tourspel-bot@users.noreply.github.com"
           git add index.html
-          git commit -m "Stand bijgewerkt" || echo "Geen wijzigingen"
+          if git diff --cached --quiet; then
+            echo "Geen wijzigingen."
+            exit 0
+          fi
+          git commit -m "Stand bijgewerkt"
+          git pull --rebase origin main
           git push

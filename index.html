@@ -106,6 +106,11 @@
     padding:14px 14px 6px;
   }
   .col-card svg{display:block;width:100%;height:auto}
+  .col-legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 12px;margin:6px 4px 10px;font-size:14px}
+  .col-legend:empty{display:none}
+  .col-legend span{display:flex;align-items:center;gap:8px;line-height:1.2}
+  .col-legend em{font-style:normal;color:var(--ink-soft);font-size:12.5px;white-space:nowrap}
+  .cdot{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;color:#fff;font-weight:700;font-size:12px;border:2px solid var(--ink);flex:0 0 22px;font-family:'Barlow Condensed',sans-serif}
   .col-note{font-size:14px;color:var(--ink-soft);margin:0 6px 14px}
 
   /* ── klassement ──────────────────────── */
@@ -197,6 +202,7 @@
     <h2>De Col van het Veld</h2>
     <div class="col-card">
       <svg id="col-svg" viewBox="0 0 1000 440" role="img" aria-label="Bergprofiel met de positie van elk team in het totale deelnemersveld"></svg>
+      <div class="col-legend" id="col-legend"></div>
     </div>
     <p class="col-note" id="col-note"></p>
   </section>
@@ -315,6 +321,56 @@
           "pts": 0.0
         }
       }
+    },
+    {
+      "etappe": 3,
+      "totaal": 253,
+      "stand": {
+        "Het Doel is de pot": {
+          "pos": 77,
+          "pts": 716.5
+        },
+        "🚲🚲🚲🚲🚲🚲🚲🚲🚲🚲🚲🚲🚲🚲🚲🚲": {
+          "pos": 40,
+          "pts": 864.3
+        },
+        "Doelloos": {
+          "pos": 46,
+          "pts": 845.6
+        },
+        "The Shortys": {
+          "pos": 73,
+          "pts": 726.4
+        },
+        "The Yellow Riders": {
+          "pos": 171,
+          "pts": 375.4
+        },
+        "TYR nemen KODB en zeggen dag tegen de Shorties": {
+          "pos": 105,
+          "pts": 640.3
+        },
+        "The Shortys outsiders": {
+          "pos": 219,
+          "pts": 63.6
+        },
+        "Abu Dhabi, Dubai, Sharjah, Ajman, Fujairah, Ras Al Khaimah en Umm Al-Quwain": {
+          "pos": 180,
+          "pts": 355.0
+        },
+        "Red Bull geeft je ….": {
+          "pos": 182,
+          "pts": 340.9
+        },
+        "Leen een fiets": {
+          "pos": 203,
+          "pts": 174.4
+        },
+        "Sprintteams overleven de 3e week niet": {
+          "pos": 236,
+          "pts": 0.0
+        }
+      }
     }
   ]
 }
@@ -373,9 +429,12 @@
   const geelTeam = stand[0].team, lantaarnTeam = stand[stand.length-1].team;
   function tekenCol(){
     const compact = window.matchMedia('(max-width:640px)').matches;
-    const W = compact ? 560 : 1000, H = compact ? 470 : 430;
-    const voetX = compact ? 28 : 40, topX = W - (compact ? 58 : 75);
-    const voetY = H - (compact ? 56 : 60), topY = compact ? 150 : 110;
+    const n = stand.length;
+    const W = compact ? 560 : 1000, H = compact ? 430 : Math.max(430, 110 + n*31);
+    // desktop: linksboven een namenladder, de berg begint daarnaast
+    const ladderAnker = compact ? 0 : 296;
+    const voetX = compact ? 28 : ladderAnker + 34, topX = W - (compact ? 58 : 75);
+    const voetY = H - (compact ? 56 : 60), topY = compact ? 110 : 112;
     const svg = document.getElementById('col-svg');
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     const N = NU.totaal;
@@ -383,13 +442,14 @@
       const f = 1 - (p-1)/(N-1);
       return { x: voetX + f*(topX-voetX), y: voetY - f*(voetY-topY) };
     };
+    const icoVan = t => t===geelTeam ? ' 🟡' : t===lantaarnTeam ? ' 🔴' : t===klimmer ? ' ⛰️' : '';
     let s = '';
-    // zon linksboven, waar de lucht vrij is
-    s += `<circle cx="${voetX+42}" cy="52" r="24" fill="#FFD400" stroke="#23241F" stroke-width="2"/>`;
+    // zon alleen op mobiel; op desktop staat daar de ladder
+    if (compact) s += `<circle cx="${voetX+42}" cy="50" r="22" fill="#FFD400" stroke="#23241F" stroke-width="2"/>`;
     // berg
     s += `<path d="M ${voetX} ${voetY} L ${topX} ${topY} L ${topX} ${voetY} Z" fill="#EAE3D0"/>`;
     s += `<path d="M ${voetX} ${voetY} L ${topX} ${topY}" stroke="#23241F" stroke-width="3" fill="none"/>`;
-    s += `<line x1="${voetX-16}" y1="${voetY}" x2="${W-16}" y2="${voetY}" stroke="#23241F" stroke-width="3"/>`;
+    s += `<line x1="${compact ? voetX-16 : 16}" y1="${voetY}" x2="${W-16}" y2="${voetY}" stroke="#23241F" stroke-width="3"/>`;
     // finishvlag op de top
     s += `<line x1="${topX}" y1="${topY}" x2="${topX}" y2="${topY-36}" stroke="#23241F" stroke-width="3"/>`;
     s += `<rect x="${topX}" y="${topY-36}" width="27" height="18" fill="url(#dam)" stroke="#23241F" stroke-width="1.5"/>`;
@@ -403,54 +463,51 @@
       s += `<line x1="${q.x}" y1="${q.y}" x2="${q.x}" y2="${q.y+9}" stroke="#8C8672" stroke-width="2"/>`;
       s += `<text x="${q.x}" y="${q.y+26}" font-size="14" fill="#8C8672" text-anchor="middle" font-family="Barlow">${p}</text>`;
     }
-    s += `<text x="${voetX-14}" y="${voetY+38}" font-size="14" fill="#5A5B52" font-family="Barlow">← plek ${N} (voet van de col)</text>`;
+    s += `<text x="${voetX-12}" y="${voetY+38}" font-size="14" fill="#5A5B52" font-family="Barlow">← plek ${N} (voet van de col)</text>`;
     s += `<text x="${topX+16}" y="${topY-46}" font-size="14" fill="#5A5B52" font-family="Barlow" text-anchor="end">plek 1 (de top)</text>`;
 
-    // teams als bolletjes op de helling, met compacte naambordjes erboven
-    const R = compact ? 11 : 10;
-    const fName = compact ? 15.5 : 16;
-    const boxH = compact ? 30 : 28, marge = 5;
-    const breedte = txt => {
-      let w = 0;
-      for (const ch of txt) w += ch.codePointAt(0) > 255 ? fName*1.05 : fName*0.52;
-      return Math.max(w, 46) + 18;
-    };
-    const dozen = [];
-    const botst = (a,b) => !(a.x2+marge < b.x1 || b.x2+marge < a.x1 || a.y2+marge < b.y1 || b.y2+marge < a.y1);
-    let bordjes = '';
+    // grote genummerde bolletjes op de helling (nummer = plek in onze ranglijst);
+    // staan teams te dicht op elkaar, dan gaat het volgende bolletje er recht boven hangen
+    const R = compact ? 14 : 13;
+    // van achteren naar voren plaatsen: bij drukte hangt het bétere team erboven,
+    // zodat de hoogte-volgorde gelijk blijft aan de ladder en lijnen nooit kruisen
+    const plekken = new Array(stand.length);
+    for (let i = stand.length - 1; i >= 0; i--){
+      const q = langsHelling(stand[i].pos);
+      let y = q.y;
+      while (plekken.some(p2 => p2 && (p2.x-q.x)**2 + (p2.y-y)**2 < (2*R+5)**2)) y -= 2*R + 7;
+      plekken[i] = {x: q.x, y, hellingY: q.y};
+    }
+    let bolletjes = '';
     stand.forEach((r,i)=>{
-      const q = langsHelling(r.pos);
-      let ico = '';
-      if (r.team===geelTeam) ico = ' 🟡';
-      else if (r.team===lantaarnTeam) ico = ' 🔴';
-      else if (r.team===klimmer) ico = ' ⛰️';
-      const naam = kort(r.team);
-      const label = `${naam} · ${r.pos}${ico}`;
-      const w = breedte(label);
-      // bordje boven het bolletje, in oplopende "lanen" tot er een vrije plek is
-      let lx = Math.min(Math.max(q.x, w/2 + 8), W - w/2 - 8);
-      let doos = null;
-      buiten:
-      for (let laan=0; laan<9; laan++){
-        const by = q.y - 26 - laan*(boxH+8);
-        if (by - boxH < 8) break;
-        for (const schuif of [0, -w*0.6, w*0.6, -w*1.2, w*1.2, -w*1.8]){
-          const cx = Math.min(Math.max(lx + schuif, w/2 + 8), W - w/2 - 8);
-          const kandidaat = {x1: cx - w/2, x2: cx + w/2, y1: by - boxH, y2: by};
-          if (!dozen.some(d2=>botst(kandidaat,d2))){ doos = {...kandidaat, cx, by}; break buiten; }
-        }
-      }
-      if (!doos){ const by = q.y - 26; doos = {x1: lx-w/2, x2: lx+w/2, y1: by-boxH, y2: by, cx: lx, by}; }
-      dozen.push(doos);
-      // lijn van bolletje naar bordje
-      s += `<line x1="${q.x}" y1="${q.y-R}" x2="${doos.cx}" y2="${doos.y2}" stroke="${KLEUR[r.team]}" stroke-width="2.5"/>`;
-      s += `<circle cx="${q.x}" cy="${q.y}" r="${R}" fill="${KLEUR[r.team]}" stroke="#23241F" stroke-width="2.5"/>`;
-      // bordjes pas ná alle lijnen tekenen zodat ze altijd bovenop liggen
-      bordjes += `<rect x="${doos.x1}" y="${doos.y1}" width="${doos.x2-doos.x1}" height="${boxH}" rx="${boxH/2}" fill="#fff" stroke="${KLEUR[r.team]}" stroke-width="2.5"/>`;
-      bordjes += `<text x="${doos.cx}" y="${doos.y1+boxH/2+5.5}" font-size="${fName}" font-weight="700" fill="#23241F" text-anchor="middle" font-family="Barlow">${esc(label)}</text>`;
+      const p2 = plekken[i];
+      if (p2.hellingY - p2.y > 1) // steeltje naar de echte plek op de helling
+        bolletjes += `<line x1="${p2.x}" y1="${p2.y+R}" x2="${p2.x}" y2="${p2.hellingY}" stroke="#23241F" stroke-width="1.8"/>`;
+      bolletjes += `<circle cx="${p2.x}" cy="${p2.y}" r="${R}" fill="${KLEUR[r.team]}" stroke="#23241F" stroke-width="2.5"/>`;
+      bolletjes += `<text x="${p2.x}" y="${p2.y+5.5}" font-size="${compact?16:15}" font-weight="700" fill="#fff" text-anchor="middle" font-family="Barlow Condensed">${i+1}</text>`;
     });
-    s += bordjes;
+
+    if (!compact){
+      // geordende namenladder linksboven; de volgorde is gelijk aan die op de
+      // helling, dus de verbindingslijnen kruisen elkaar nooit
+      const startY = 44, stap = Math.min(32, (voetY - 70 - startY) / (n - 1));
+      stand.forEach((r,i)=>{
+        const p2 = plekken[i];
+        const y = startY + i*stap;
+        s += `<path d="M ${ladderAnker} ${y} L ${ladderAnker+18} ${y} L ${p2.x-R-3} ${p2.y}" fill="none" stroke="${KLEUR[r.team]}" stroke-width="1.6" opacity="0.75"/>`;
+        s += `<circle cx="26" cy="${y}" r="11" fill="${KLEUR[r.team]}" stroke="#23241F" stroke-width="2"/>`;
+        s += `<text x="26" y="${y+4.5}" font-size="13" font-weight="700" fill="#fff" text-anchor="middle" font-family="Barlow Condensed">${i+1}</text>`;
+        s += `<text x="44" y="${y+5}" font-size="15" font-weight="700" fill="#23241F" font-family="Barlow">${esc(kort(r.team))}${icoVan(r.team)}</text>`;
+        s += `<text x="${ladderAnker-6}" y="${y+5}" font-size="13.5" fill="#5A5B52" text-anchor="end" font-family="Barlow">${r.pos}</text>`;
+      });
+    }
+    s += bolletjes; // bolletjes als laatste, zodat ze altijd bovenop de lijnen liggen
     svg.innerHTML = s;
+
+    // op mobiel komt de ranglijst als nette lijst onder de berg
+    document.getElementById('col-legend').innerHTML = !compact ? '' : stand.map((r,i)=>
+      `<span><b class="cdot" style="background:${KLEUR[r.team]}">${i+1}</b>${esc(kort(r.team))}${icoVan(r.team)} <em>· plek ${r.pos}</em></span>`
+    ).join('');
 
     document.getElementById('col-note').textContent =
       'Hoe hoger op de col, hoe hoger in het totale klassement van '+N+' teams. '+

@@ -1,0 +1,37 @@
+name: Stand bijwerken
+
+on:
+  push:
+    paths:
+      - "sheets/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Pakketten installeren
+        run: pip install pandas openpyxl
+
+      - name: Alle etappe-sheets verwerken
+        run: |
+          for f in sheets/*.xlsx; do
+            python update_stand.py "$f"
+          done
+
+      - name: Bijgewerkte stand committen
+        run: |
+          git config user.name "tourspel-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git commit -m "Stand bijgewerkt" || echo "Geen wijzigingen"
+          git push
